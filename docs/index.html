@@ -15,9 +15,8 @@
 <body>
   <h1 class="center">Lecteur SWF (Ruffle)</h1>
   <div id="player" class="center">
-    <!-- Ruffle remplacera l'embed et lancera le SWF si présent. Il utilise atom.swf placé dans docs/ -->
-    <embed id="swf-embed" src="atom.swf" width="800" height="600" type="application/x-shockwave-flash">
-    </embed>
+    <!-- Le player Ruffle sera initialisé par JavaScript et chargera atom.swf placé dans docs/ -->
+    <div id="ruffle-container"></div>
   </div>
 
   <div class="center">
@@ -27,9 +26,25 @@
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       if (!window.RufflePlayer) {
-        console.warn('Ruffle player non chargé — vérifiez l\'include du script ruffle.');
-      } else {
-        console.log('Ruffle chargé — tentative d\'exécution de atom.swf si présent.');
+        console.warn('Ruffle player non chargé — vérifiez l'include du script ruffle.');
+        // Message visible pour les utilisateurs sans JS ou si le script a échoué
+        const c = document.getElementById('ruffle-container');
+        c.innerHTML = '<p>Impossible de charger Ruffle. Assurez-vous que le script est accessible.</p>';
+        return;
+      }
+
+      try {
+        const ruffle = window.RufflePlayer.newest();
+        const player = ruffle.createPlayer();
+        const container = document.getElementById('ruffle-container');
+        container.appendChild(player);
+        // Charge atom.swf (chemin relatif à ce fichier : docs/atom.swf)
+        player.load('atom.swf');
+        console.log('Ruffle chargé — tentative d'exécution de atom.swf.');
+      } catch (e) {
+        console.error('Erreur pendant l'initialisation de Ruffle:', e);
+        const c = document.getElementById('ruffle-container');
+        c.innerHTML = '<p>Erreur lors de l'initialisation du lecteur SWF. Voir la console pour détails.</p>';
       }
     });
   </script>
