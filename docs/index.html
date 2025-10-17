@@ -4,8 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Lecteur SWF (Ruffle) — dr5ci3nces/chimie</title>
-  <!-- Ruffle web player (CDN). Pin a version for stabilité si souhaité. -->
-  <script src="https://unpkg.com/@ruffle-rs/ruffle-web@latest/dist/ruffle.js"></script>
   <style>
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 1rem; background: #f7f7f8; color: #111; }
     #player { width: 100%; max-width: 1024px; margin: 1rem auto; background: white; padding: 1rem; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
@@ -15,7 +13,6 @@
 <body>
   <h1 class="center">Lecteur SWF (Ruffle)</h1>
   <div id="player" class="center">
-    <!-- Le player Ruffle sera initialisé par JavaScript et chargera atom.swf placé dans docs/ -->
     <div id="ruffle-container"></div>
   </div>
 
@@ -24,29 +21,89 @@
   </div>
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      if (!window.RufflePlayer) {
-        console.warn('Ruffle player non chargé — vérifiez l'include du script ruffle.');
-        // Message visible pour les utilisateurs sans JS ou si le script a échoué
-        const c = document.getElementById('ruffle-container');
-        c.innerHTML = '<p>Impossible de charger Ruffle. Assurez-vous que le script est accessible.</p>';
-        return;
-      }
+    // Charge le script Ruffle depuis le CDN, sinon charge une copie locale docs/ruffle.js
+    (function loadRuffleScript(cb) {
+      var cdnUrl = "https://unpkg.com/@ruffle-rs/ruffle-web@latest/dist/ruffle.js";
+      var script = document.createElement('script');
+      script.src = cdnUrl;
+      script.async = true;
 
-      try {
-        const ruffle = window.RufflePlayer.newest();
-        const player = ruffle.createPlayer();
-        const container = document.getElementById('ruffle-container');
-        container.appendChild(player);
-        // Charge atom.swf (chemin relatif à ce fichier : docs/atom.swf)
-        player.load('atom.swf');
-        console.log('Ruffle chargé — tentative d'exécution de atom.swf.');
-      } catch (e) {
-        console.error('Erreur pendant l'initialisation de Ruffle:', e);
-        const c = document.getElementById('ruffle-container');
-        c.innerHTML = '<p>Erreur lors de l'initialisation du lecteur SWF. Voir la console pour détails.</p>';
+      var handled = false;
+      function onLoaded() { if (handled) return; handled = true; cb(null); }
+      function onError() { if (handled) return; handled = true; cb(new Error('CDN failed')); }
+
+      script.onload = onLoaded;
+      script.onerror = onError;
+
+      // Timeout au cas où le CDN ne répond pas (ex: réseau lent / bloqué)
+      var timeout = setTimeout(function() {
+        if (handled) return;
+        handled = true;
+        cb(new Error('CDN timeout'));
+      }, 8000);
+
+      // Clean up wrapper to avoid duplicate handlers
+      var wrappedCb = function(err) {
+        clearTimeout(timeout);
+        cb(err);
+      };
+
+      // attach final callback that clears timeout
+      script.onload = function(){ wrappedCb(null); };
+      script.onerror = function(){ wrappedCb(new Error('CDN error')); };
+
+      document.head.appendChild(script);
+    })(function(err) {
+      if (err) {
+        console.warn('Chargement CDN Ruffle échoué:', err, '- tentative de chargement local /docs/ruffle.js');
+        // Charge la copie locale de ruffle
+        var local = document.createElement('script');
+        local.src = 'ruffle.js'; // chemin relatif à docs/index.html -> docs/ruffle.js
+        local.onload = initRuffle;
+        local.onerror = function(e) {
+          console.error('Impossible de charger la copie locale docs/ruffle.js :', e);
+          var c = document.getElementById('ruffle-container');
+          c.innerHTML = '<p>Impossible de charger Ruffle (ni CDN, ni local). Téléversez une copie de ruffle-web dans docs/ruffle.js ou corrigez le chemin.</p>';
+        };
+        document.head.appendChild(local);
+      } else {
+        initRuffle();
       }
     });
+
+    function initRuffle() {
+      document.addEventListener('DOMContentLoaded', function() {
+        if (!window.RufflePlayer) {
+          // Si Ruffle n'est pas encore défini, attendre un petit délai
+          setTimeout(function() {
+            if (!window.RufflePlayer) {
+              console.error('Ruffle introuvable après chargement du script.');
+              document.getElementById('ruffle-container').innerHTML = '<p>Ruffle introuvable — voir la console pour détails.</p>';
+              return;
+            }
+            createAndLoad();
+          }, 200);
+          return;
+        }
+        createAndLoad();
+      });
+
+      function createAndLoad() {
+        try {
+          var ruffle = window.RufflePlayer.newest();
+          var player = ruffle.createPlayer();
+          var container = document.getElementById('ruffle-container');
+          container.innerHTML = ''; // nettoyer
+          container.appendChild(player);
+          // Charge atom.swf (chemin relatif à ce fichier : docs/atom.swf)
+          player.load('atom.swf');
+          console.log('Ruffle chargé — tentative d\'exécution de atom.swf.');
+        } catch (e) {
+          console.error('Erreur pendant l\'initialisation de Ruffle:', e);
+          document.getElementById('ruffle-container').innerHTML = '<p>Erreur lors de l\'initialisation du lecteur SWF. Voir la console pour détails.</p>';
+        }
+      }
+    }
   </script>
 </body>
 </html>
