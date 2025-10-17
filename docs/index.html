@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Lecteur SWF (Ruffle) — dr5ci3nces/chimie</title>
+  <!-- Ruffle web player (CDN). Pin a version for stabilité si souhaité. -->
+  <script src="https://unpkg.com/@ruffle-rs/ruffle-web@latest/dist/ruffle.js"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 1rem; background: #f7f7f8; color: #111; }
+    #player { width: 100%; max-width: 1024px; margin: 1rem auto; background: white; padding: 1rem; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .center { text-align: center; }
+  </style>
+</head>
+<body>
+  <h1 class="center">Lecteur SWF (Ruffle)</h1>
+  <div id="player" class="center">
+    <!-- Ruffle remplacera l'embed et lancera le SWF si présent. Il utilise atom.swf placé dans docs/ -->
+    <embed id="swf-embed" src="atom.swf" width="800" height="600" type="application/x-shockwave-flash">
+    </embed>
+  </div>
+
+  <div class="center">
+    <p>Si votre fichier SWF ne fonctionne pas, ouvrez la console du navigateur pour voir les erreurs du player Ruffle. Le support AS3 est limité.</p>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!window.RufflePlayer) {
+        console.warn('Ruffle player non chargé — vérifiez l\'include du script ruffle.');
+      } else {
+        console.log('Ruffle chargé — tentative d\'exécution de atom.swf si présent.');
+      }
+    });
+  </script>
+</body>
+</html>
